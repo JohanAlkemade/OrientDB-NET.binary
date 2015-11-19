@@ -9,7 +9,11 @@ namespace Orient.Client.Protocol
     internal class SqlQuery
     {
         private QueryCompiler _compiler = new QueryCompiler();
-
+        private Connection _connection;
+        public SqlQuery(Connection connection)
+        {
+            _connection = connection;
+        }
         internal void Class(string className)
         {
             _compiler.Unique(Q.Class, ParseClassName(className));
@@ -52,6 +56,11 @@ namespace Orient.Client.Protocol
         internal void Extends(string superClass)
         {
             _compiler.Unique(Q.Extends, ParseClassName(superClass));
+        }
+
+        internal void Abstract()
+        {
+            _compiler.Unique(Q.Abstract);
         }
 
         internal void Vertex(string className)
@@ -272,12 +281,13 @@ namespace Orient.Client.Protocol
         {
             string field = "";
 
-            if (_compiler.HasKey(Q.Set))
+            if (_compiler.HasKey(Q.Set) && !string.IsNullOrWhiteSpace(fieldName))
             {
                 field += ", ";
             }
 
-            field += string.Join(" ", fieldName, Q.Equals, "");
+            if (!string.IsNullOrWhiteSpace(fieldName))
+                field += string.Join(" ", fieldName, Q.Equals, "");
 
             if (fieldValue == null)
             {
@@ -291,7 +301,7 @@ namespace Orient.Client.Protocol
 
                 foreach (object item in collection)
                 {
-                    field += ToString(item);
+                    field += BuildFieldValue(null, item);
 
                     iteration++;
 
@@ -312,11 +322,15 @@ namespace Orient.Client.Protocol
 
                 while (enumerator.MoveNext())
                 {
-                    field += String.Format("'{0}':{1}", enumerator.Key, ToString(enumerator.Value));
                     iteration++;
+                    if (enumerator.Value != null)
+                    {
+                        field += String.Format("'{0}':{1}", enumerator.Key, BuildFieldValue(null, enumerator.Value));
 
-                    if (iteration < dict.Count)
-                        field += ", ";
+                        if (iteration < dict.Count)
+                            field += ", ";
+                    }
+
                 }
                 field += "}";
             }
@@ -484,6 +498,15 @@ namespace Orient.Client.Protocol
 
         #endregion
 
+        #region Upsert
+
+        public void Upsert()
+        {
+            _compiler.Unique(Q.Upsert);
+        }
+
+        #endregion
+
         internal void OrderBy(params string[] fields)
         {
             for (int i = 0; i < fields.Length; i++)
@@ -519,20 +542,38 @@ namespace Orient.Client.Protocol
 
         #region ToString
 
-        internal string ToString(object value)
+        private string ToString(object value)
         {
             string sql = "";
 
             if (value is string)
             {
-                sql = string.Join(" ", "'" + value + "'");
+                sql = string.Join(" ", "'" + ((string)value).Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n").Replace("'", "\\'") + "'");
             }
             else if (value is DateTime)
             {
-                //DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                DateTime fieldValue = (DateTime)((object)value);
-                //field += ((long)(value - unixEpoch).TotalMilliseconds);
-                sql = "'" + fieldValue.ToString("s").Replace('T', ' ') + "'";
+                if (_connection == null)
+                {
+                    //DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    DateTime fieldValue = (DateTime)((object)value);
+                    //field += ((long)(value - unixEpoch).TotalMilliseconds);
+                    sql = "'" + fieldValue.ToString("s").Replace('T', ' ') + "'";
+                }
+                else
+                {
+                    var propDocument = _connection.Database.DatabaseProperties;
+                    var dateTimeFormat = propDocument.GetField<string>("DateTimeFormat");
+                    var timeZone = propDocument.GetField<string>("Timezone");
+
+                    // How to map Windows TimeZone id to IANA timezone id
+
+                    DateTime fieldValue = (DateTime)((object)value);
+                    sql = "'" + fieldValue.ToString(dateTimeFormat) + "'";
+                }
+            }
+            else if (value is TimeSpan)
+            {
+                sql = "'" + value.ToString() + "'";
             }
             else if (value is ODocument)
             {
@@ -562,9 +603,10 @@ namespace Orient.Client.Protocol
                 }
 
                 if (!string.IsNullOrEmpty(document.OClassName))
-                    sql += ",'@class':'" + document.OClassName + "',";
+                    sql += ",'@class':'" + document.OClassName + "'";//,";
 
-                sql += "'@type':'d','@version':" + document.OVersion + "}";
+                //sql += "'@type':'d','@version':" + document.OVersion;
+                sql += "}";
             }
             else if (value is Guid || value is Enum)
             {
@@ -572,7 +614,10 @@ namespace Orient.Client.Protocol
             }
             else if (value is Decimal)
             {
-                sql = string.Join(" ", value.ToInvarianCultureString() + "d"); // Bug in orientdb #3483 after that use suffix + "c");
+                sql = string.Join(" ", value.ToInvarianCultureString() + "d");
+                // Experimental function https://github.com/orientechnologies/orientdb/issues/3483
+                // sql = string.Join(" ", "decimal(", value.ToInvarianCultureString(), ")");
+                // Bug in orientdb #3483 after that use suffix + "c");
             }
             else if (value is float)
             {
@@ -581,6 +626,10 @@ namespace Orient.Client.Protocol
             else if (value is double)
             {
                 sql = string.Join(" ", value.ToInvarianCultureString() + "d");
+            }
+            else if (value == null)
+            {
+                sql = string.Join(" ", "null");
             }
             else
             {
@@ -636,6 +685,12 @@ namespace Orient.Client.Protocol
             if (_compiler.HasKey(Q.Extends))
             {
                 query += string.Join(" ", "", Q.Extends, _compiler.Value(Q.Extends));
+            }
+
+            // [ABSTRACT] 
+            if (_compiler.HasKey(Q.Abstract))
+            {
+                query += string.Join(" ", "", Q.Abstract, _compiler.Value(Q.Abstract));
             }
 
             // [CLUSTER <clusterId>*]
@@ -772,6 +827,12 @@ namespace Orient.Client.Protocol
             else if (_compiler.HasKey(Q.Remove))
             {
                 query += string.Join(" ", "", Q.Remove, _compiler.Value(Q.Remove));
+            }
+
+            // (UPSERT)
+            if (_compiler.HasKey(Q.Upsert))
+            {
+                query += " " + Q.Upsert;
             }
 
             // [<conditions>](WHERE) 

@@ -44,6 +44,7 @@
     <Compile Include="API\Exceptions\OException.cs" />
     <Compile Include="API\Exceptions\OExceptionType.cs" />
     <Compile Include="API\OTransaction.cs" />
+    <Compile Include="API\Query\PreparedCommand.cs" />
     <Compile Include="API\Query\Interfaces\IOCreateCluster.cs" />
     <Compile Include="API\Query\Interfaces\IOCreateEdge.cs" />
     <Compile Include="API\Query\Interfaces\IOCreateVertex.cs" />
@@ -60,12 +61,14 @@
     <Compile Include="API\Query\OSqlCreateProperty.cs" />
     <Compile Include="API\Query\OSqlDeleteCluster.cs" />
     <Compile Include="API\Query\OSqlSchema.cs" />
+    <Compile Include="API\Query\PreparedQuery.cs" />
     <Compile Include="API\Types\DatabaseInfo.cs" />
     <Compile Include="API\Types\IBaseRecord.cs" />
     <Compile Include="API\Types\OBaseRecord.cs" />
     <Compile Include="API\Types\OEdge.cs" />
     <Compile Include="API\Types\OEmbeddedRidBag.cs" />
     <Compile Include="API\Types\ORecordFormat.cs" />
+    <Compile Include="API\Types\OToken.cs" />
     <Compile Include="API\Types\OVertex.cs" />
     <Compile Include="API\Query\OCommandResult.cs" />
     <Compile Include="API\OProperty.cs" />
@@ -106,7 +109,11 @@
     <Compile Include="Mapping\FieldMapping.cs" />
     <Compile Include="Mapping\GuidFieldMapping.cs" />
     <Compile Include="Mapping\HashSetNamedFieldMapping.cs" />
+    <Compile Include="Mapping\LongFieldMapping.cs" />
+    <Compile Include="Mapping\NullableTimeSpanFieldMapping.cs" />
     <Compile Include="Mapping\ORIDFieldMapping.cs" />
+    <Compile Include="Mapping\ShortFieldMapping.cs" />
+    <Compile Include="Mapping\TimeSpanFieldMapping.cs" />
     <Compile Include="Mapping\TypeMapper.cs" />
     <Compile Include="Protocol\BinaryReaderHelper.cs" />
     <Compile Include="Protocol\Operations\BaseOperation.cs" />

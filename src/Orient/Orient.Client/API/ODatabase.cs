@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Orient.Client.API;
 using Orient.Client.API.Query;
 using Orient.Client.API.Query.Interfaces;
 using Orient.Client.Protocol;
 using Orient.Client.Protocol.Operations;
 using Orient.Client.Protocol.Operations.Command;
+using Orient.Client.Protocol.Serializers;
 
 namespace Orient.Client
 {
@@ -15,6 +18,8 @@ namespace Orient.Client
         private bool _containsConnection;
         private Connection _connection;
 
+        private ODocument _databaseProperties;
+
         public IDictionary<ORID, ODocument> ClientCache { get; private set; }
 
         public OCreate Create { get { return new OCreate(_connection); } }
@@ -22,6 +27,18 @@ namespace Orient.Client
         public OLoadRecord Load { get { return new OLoadRecord(_connection); } }
         public ORecordMetadata Metadata { get { return new ORecordMetadata(_connection); } }
         public OSqlSchema Schema { get { return new OSqlSchema(_connection); } }
+
+        public ODocument DatabaseProperties
+        {
+            get
+            {
+                if (_databaseProperties == null)
+                {
+                    _databaseProperties = retrieveDataBaseProperties().Result;
+                }
+                return _databaseProperties;
+            }
+        }
 
         public OTransaction Transaction { get; private set; }
 
@@ -44,6 +61,25 @@ namespace Orient.Client
             get { return _connection.ProtocolVersion; }
         }
 
+        private Task<ODocument> retrieveDataBaseProperties()
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                var document = Load.ORID(new ORID(0, 0)).Run();
+                var str = Encoding.UTF8.GetString(document.GetField<byte[]>("RawBytes"));
+                var values = str.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                var doc = new ODocument();
+                doc.SetField("Version", values[0]);
+                doc.SetField("LocaleLanguage", values[5]);
+                doc.SetField("LocaleCountry", values[6]);
+                doc.SetField("DateFormat", values[7]);
+                doc.SetField("DateTimeFormat", values[8]);
+                doc.SetField("Timezone", values[9]);
+                doc.SetField("Charset", values[10]);
+                return doc;
+            });
+        }
+
         public List<OCluster> GetClusters(bool reload = false)
         {
             if (!reload)
@@ -57,7 +93,7 @@ namespace Orient.Client
         {
             return Schema.GetDefaultClusterForClass(className);
         }
-        
+
         public string GetClusterNameFor(short clusterId)
         {
             OCluster oCluster = GetClusters().FirstOrDefault(x => x.Id == clusterId);
@@ -158,7 +194,6 @@ namespace Orient.Client
             payload.Text = sql;
             payload.NonTextLimit = -1;
             payload.FetchPlan = fetchPlan;
-            //payload.SerializedParams = new byte[] { 0 };
 
             Command operation = new Command(_connection.Database);
             operation.OperationMode = OperationMode.Asynchronous;
@@ -169,7 +204,22 @@ namespace Orient.Client
             return document.GetField<List<ODocument>>("Content");
         }
 
+        public PreparedQuery Query(PreparedQuery query)
+        {
+            query.SetConnection(_connection);
+            return query;
+        }
+
         #endregion
+
+        public OCommandQuery SqlBatch(string batch)
+        {
+            CommandPayloadScript payload = new CommandPayloadScript();
+            payload.Language = "sql";
+            payload.Text = batch;
+
+            return new OCommandQuery(_connection, payload);
+        }
 
         public OCommandResult Gremlin(string query)
         {
@@ -185,6 +235,7 @@ namespace Orient.Client
 
             return new OCommandResult(document);
         }
+
         public OCommandQuery JavaScript(string query)
         {
             CommandPayloadScript payload = new CommandPayloadScript();
@@ -192,20 +243,21 @@ namespace Orient.Client
             payload.Text = query;
 
             return new OCommandQuery(_connection, payload);
-
         }
+
         public OCommandResult Command(string sql)
         {
             CommandPayloadCommand payload = new CommandPayloadCommand();
             payload.Text = sql;
 
-            Command operation = new Command(_connection.Database);
-            operation.OperationMode = OperationMode.Synchronous;
-            operation.CommandPayload = payload;
+            OCommandQuery query = new OCommandQuery(_connection, payload);
+            return query.Run();
+        }
 
-            ODocument document = _connection.ExecuteOperation(operation);
-
-            return new OCommandResult(document);
+        public PreparedCommand Command(PreparedCommand command)
+        {
+            command.SetConnection(_connection);
+            return command;
         }
 
         public long Size
@@ -272,5 +324,6 @@ namespace Orient.Client
             //return Clusters(clusterIds.Select(id => new OCluster { Name = GetClusterNameFor(id), Id = id }));
             return Clusters(clusterIds.Select(id => new OCluster { Id = id }));
         }
+
     }
 }

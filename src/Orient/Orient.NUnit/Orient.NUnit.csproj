@@ -8,6 +8,8 @@
     <RootNamespace>Orient.Tests</RootNamespace>
     <AssemblyName>Orient.NUnit</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\..\..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,9 +32,10 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Management" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -42,8 +45,24 @@
     <Compile Include="AssemblySetup.cs" />
     <Compile Include="ClusterEqutableTest.cs" />
     <Compile Include="DbRunner.cs" />
+    <Compile Include="Issues\GitHub_issue71.cs" />
+    <Compile Include="Issues\GitHub_issue55.cs" />
     <Compile Include="Issues\GitHub_issue23.cs" />
+    <Compile Include="Issues\GitHub_issue38.cs" />
+    <Compile Include="Issues\GitHub_issue46.cs" />
+    <Compile Include="Issues\GitHub_issue52.cs" />
+    <Compile Include="Issues\GitHub_issue53.cs" />
+    <Compile Include="Issues\GitHub_issue54.cs" />
+    <Compile Include="Issues\GitHub_issue57.cs" />
+    <Compile Include="Issues\GitHub_issue62.cs" />
+    <Compile Include="Issues\GitHub_issue88.cs" />
+    <Compile Include="Issues\GitHub_issue86.cs" />
+    <Compile Include="Issues\GitHub_issue85.cs" />
+    <Compile Include="Issues\GitHub_issue84.cs" />
+    <Compile Include="Issues\GitHub_issue83.cs" />
     <Compile Include="Issues\GitHub_issue8.cs" />
+    <Compile Include="Query\PreparedQueryTest.cs" />
+    <Compile Include="Query\SqlTimespanFieldTests.cs" />
     <Compile Include="Serialization\RecordCSVSerializerTest.cs" />
     <Compile Include="TestConfigurationOperation.cs" />
     <Compile Include="TestConnection.cs" />
@@ -112,6 +131,9 @@
       <Name>Orient.Client</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
@@ -122,4 +144,11 @@
       </Properties>
     </MonoDevelop>
   </ProjectExtensions>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+  </Target>
 </Project>

@@ -30,8 +30,18 @@ namespace Orient.Client.Mapping
         protected override void AddItemToCollection(object collection, int index, object item)
         {
             Type itemType = _propertyInfo.PropertyType.GetGenericArguments()[0];
-            if (item is IConvertible || itemType.IsAssignableFrom(item.GetType()))
+            if (itemType.IsEnum)
+            {
+                ((IList)collection).Add(Enum.Parse(itemType, item.ToString()));
+            }
+            else if (itemType == typeof(Guid))
+            {
+                ((IList)collection).Add(Guid.Parse(item.ToString()));
+            }
+            else if (item is IConvertible || itemType.IsAssignableFrom(item.GetType()))
+            {
                 ((IList)collection).Add(Convert.ChangeType(item, itemType));
+            }
         }
     }
 
@@ -54,8 +64,22 @@ namespace Orient.Client.Mapping
         protected override void AddItemToCollection(object collection, int index, object item)
         {
             Type itemType = _propertyInfo.PropertyType.GetElementType();
-            if (item is IConvertible || itemType.IsAssignableFrom(item.GetType()))
+            if (itemType.IsEnum)
+            {
+                ((IList)collection)[index] = Enum.Parse(itemType, item.ToString());
+            }
+            else if (itemType == typeof(Guid))
+            {
+                ((IList)collection)[index] = Guid.Parse(item.ToString());
+            }
+            else if (item == null)
+            {
+                ((IList)collection)[index] = null;
+            }
+            else if (item is IConvertible || itemType.IsAssignableFrom(item.GetType()))
+            {
                 ((IList)collection)[index] = Convert.ChangeType(item, itemType);
+            }
         }
     }
 }

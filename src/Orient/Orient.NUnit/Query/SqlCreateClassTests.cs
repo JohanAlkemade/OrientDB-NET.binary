@@ -59,6 +59,32 @@ namespace Orient.Tests.Query
         }
 
         [Test]
+        public void ShouldCreateAbstractClass()
+        {
+            using (TestDatabaseContext testContext = new TestDatabaseContext())
+            {
+                using (ODatabase database = new ODatabase(TestConnection.GlobalTestDatabaseAlias))
+                {
+                    short classId1 = database
+                        .Create.Class("TestClass1")
+                        .Abstract()
+                        .Run();
+
+                    Assert.IsTrue(classId1 > 0);
+
+                    short classId2 = database
+                        .Create.Class("TestClass2")
+                        .Abstract()
+                        .Run();
+
+                    Assert.IsTrue(classId2 > 0);
+
+                    Assert.AreEqual(classId1 + 1, classId2);
+                }
+            }
+        }
+
+        [Test]
         public void ShouldCreateClassCluster()
         {
             using (TestDatabaseContext testContext = new TestDatabaseContext())
@@ -118,6 +144,22 @@ namespace Orient.Tests.Query
                     //var result = database.Command("info class TestClass");
                     
                     var schema = database.Schema.Properties<TestClass>();
+                }
+            }
+        }
+
+        [Test]
+        public void ShouldCreateClassWithCustomNameProperties()
+        {
+            using (TestDatabaseContext testContext = new TestDatabaseContext())
+            {
+                using (ODatabase database = new ODatabase(TestConnection.GlobalTestDatabaseAlias))
+                {
+                    short classId1 = database.Create.Class<TestClass>("MyTestClass").CreateProperties().Run();
+
+                    Assert.IsTrue(classId1 > 0);
+
+                    
                 }
             }
         }

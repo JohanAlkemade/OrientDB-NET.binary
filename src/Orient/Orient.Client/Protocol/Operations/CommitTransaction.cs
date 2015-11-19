@@ -11,14 +11,13 @@ namespace Orient.Client.Protocol.Operations
 
     class CommitTransaction : BaseOperation
     {
-        //private readonly ODatabase _database;
         private List<TransactionRecord> _records;
 
         public CommitTransaction(List<TransactionRecord> records, ODatabase database)
             : base(database)
         {
             _records = records;
-            // _database = database;
+            _operationType = OperationType.TX_COMMIT;
         }
 
         public override Request Request(Request request)
@@ -32,14 +31,11 @@ namespace Orient.Client.Protocol.Operations
             //var clusterId = _database.GetClusters().First(x => x.Name == className).Id;
             //_document.ORID = new ORID(clusterId, -1);
 
-            // standard request fields
+            base.Request(request);
             int transactionId = 1;
 
-            request.AddDataItem((byte)OperationType.TX_COMMIT);
-            request.AddDataItem(request.SessionId);
-
             request.AddDataItem(transactionId);
-            request.AddDataItem((byte)0); // use log 0 = no, 1 = yes
+            request.AddDataItem((byte)(UseTransactionLog ? 1 : 0)); // use log 0 = no, 1 = yes
 
             foreach (var item in _records)
             {
@@ -51,23 +47,16 @@ namespace Orient.Client.Protocol.Operations
 
             request.AddDataItem((int)0);
 
-            //request.DataItems.Add(new RequestDataItem() { Type = "int", Data = BinarySerializer.ToArray(-1) });  // data segment id
-            //request.DataItems.Add(new RequestDataItem() { Type = "short", Data = BinarySerializer.ToArray((short)-1) });
-            //request.DataItems.Add(new RequestDataItem() {Type = "string", Data = BinarySerializer.ToArray(_document.Serialize())});
-            //request.DataItems.Add(new RequestDataItem() {Type = "byte", Data = BinarySerializer.ToArray((byte) 'd')});
-            //request.DataItems.Add(new RequestDataItem() {Type = "byte", Data = BinarySerializer.ToArray((byte) 0)});
-
-
             return request;
         }
-
-
 
         public override ODocument Response(Response response)
         {
             ODocument responseDocument = new ODocument();
 
             var reader = response.Reader;
+            if (response.Connection.ProtocolVersion > 26 && response.Connection.UseTokenBasedSession)
+                ReadToken(reader);
 
             var createdRecordMapping = new Dictionary<ORID, ORID>();
             int recordCount = reader.ReadInt32EndianAware();
@@ -118,5 +107,7 @@ namespace Orient.Client.Protocol.Operations
             return result;
         }
 
+
+        public bool UseTransactionLog { get; set; }
     }
 }

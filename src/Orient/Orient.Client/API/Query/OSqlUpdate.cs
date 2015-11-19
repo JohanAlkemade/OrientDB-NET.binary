@@ -23,16 +23,17 @@ namespace Orient.Client
 {
     public class OSqlUpdate
     {
-        private SqlQuery _sqlQuery = new SqlQuery();
+        private SqlQuery _sqlQuery;
         private Connection _connection;
 
         public OSqlUpdate()
         {
+            _sqlQuery = new SqlQuery(null);
         }
-
         internal OSqlUpdate(Connection connection)
         {
             _connection = connection;
+            _sqlQuery = new SqlQuery(connection);
         }
 
         #region Update
@@ -245,6 +246,17 @@ namespace Orient.Client
 
             return this;
         }
+
+        #region Upsert
+
+        public OSqlUpdate Upsert()
+        {
+            _sqlQuery.Upsert();
+
+            return this;
+        }
+
+        #endregion
 
         public int Run()
         {
