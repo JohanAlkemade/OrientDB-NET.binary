@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Emit;
 
 namespace Orient.Client.Mapping
 {
@@ -41,7 +40,7 @@ namespace Orient.Client.Mapping
         public static Action<T, object> BuildUntypedSetter<T>(PropertyInfo propertyInfo)
         {
             var targetType = propertyInfo.DeclaringType;
-            var methodInfo = propertyInfo.GetSetMethod();
+            var methodInfo = propertyInfo.GetSetMethod(true);
             var exTarget = Expression.Parameter(targetType, "t");
             var exValue = Expression.Parameter(typeof(object), "p");
             var exBody = Expression.Call(exTarget, methodInfo, Expression.Convert(exValue, propertyInfo.PropertyType));
@@ -53,7 +52,7 @@ namespace Orient.Client.Mapping
         public static Func<T, object> BuildUntypedGetter<T>(PropertyInfo propertyInfo)
         {
             var targetType = propertyInfo.DeclaringType;
-            var methodInfo = propertyInfo.GetGetMethod();
+            var methodInfo = propertyInfo.GetGetMethod(true);
 
             var exTarget = Expression.Parameter(targetType, "t");
             var exBody = Expression.Call(exTarget, methodInfo);

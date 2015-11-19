@@ -16,19 +16,19 @@ namespace Orient.Client
 {
     public class OSqlCreateClass
     {
-        private SqlQuery _sqlQuery = new SqlQuery();
+        private SqlQuery _sqlQuery;
         private Connection _connection;
         private string _className;
         private Type _type;
         private bool _autoProperties;
-
         public OSqlCreateClass()
         {
+            _sqlQuery = new SqlQuery(null);
         }
-
         internal OSqlCreateClass(Connection connection)
         {
             _connection = connection;
+            _sqlQuery = new SqlQuery(connection);
         }
 
         #region Class
@@ -48,6 +48,13 @@ namespace Orient.Client
             return Class(_className);
         }
 
+        public OSqlCreateClass Class<T>(string className)
+        {
+            _type = typeof(T);
+            _className = className;
+            return Class(_className);
+        }
+
         #endregion
 
         #region Extends
@@ -55,6 +62,13 @@ namespace Orient.Client
         public OSqlCreateClass Extends(string superClass)
         {
             _sqlQuery.Extends(superClass);
+
+            return this;
+        }
+
+        public OSqlCreateClass Abstract()
+        {
+            _sqlQuery.Abstract();
 
             return this;
         }
@@ -145,7 +159,7 @@ namespace Orient.Client
         private void CreateProperty(PropertyInfo pi)
         {
             var propType = ConvertPropertyType(pi.PropertyType);
-            var @class = (_type != null) ? _type.Name : _className;
+            var @class =  _className;
 
             var propid = _connection.Database
                 .Create

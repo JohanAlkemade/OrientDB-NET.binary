@@ -76,9 +76,10 @@ namespace Orient.Client
 
                 if (fieldValue is ICollection && (fieldValue as ICollection).Count == 1)
                 {
-                    var first = (fieldValue as IEnumerable).OfType<object>().First();
-                    if (first is T)
-                        return (T)first;
+                    var enumerable = (fieldValue as IEnumerable).GetEnumerator();
+                    enumerable.MoveNext();
+                    if (enumerable.Current != null && enumerable.Current is T)
+                        return (T)enumerable.Current;
                 }
 
                 // if value is list or set type, get element type and enumerate over its elements
@@ -146,6 +147,16 @@ namespace Orient.Client
                 {
                     DateTime parsedValue;
                     if (DateTime.TryParse((string)fieldValue, out parsedValue))
+                    {
+                        return (T)(object)parsedValue;
+                    }
+                }
+                else if (type == typeof(TimeSpan) || type == typeof(Nullable<TimeSpan>))
+                {
+                    if (fieldValue != null && (fieldValue.GetType() == typeof(TimeSpan) || fieldValue.GetType() == typeof(Nullable<TimeSpan>)))
+                        return (T)fieldValue;
+                    TimeSpan parsedValue;
+                    if (TimeSpan.TryParse((string)fieldValue, out parsedValue))
                     {
                         return (T)(object)parsedValue;
                     }

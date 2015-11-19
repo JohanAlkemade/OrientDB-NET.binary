@@ -95,7 +95,7 @@ namespace Orient.Client.Mapping
                         _fields.Add(new ArrayNamedFieldMapping<T>(propertyInfo, fieldPath));
                     }
                 }
-                else if (propertyInfo.PropertyType.IsGenericType)
+                else if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() != typeof(Nullable<>))
                 {
                     if (propertyInfo.PropertyType.Name.StartsWith("List")
                         || propertyInfo.PropertyType.Name.StartsWith("IList"))
@@ -103,6 +103,8 @@ namespace Orient.Client.Mapping
                     else if (propertyInfo.PropertyType.Name.StartsWith("HashSet"))
                         _fields.Add(new HashSetNamedFieldMapping<T>(propertyInfo, fieldPath));
                     else if (propertyInfo.PropertyType.Name.StartsWith("Dictionary"))
+                        _fields.Add(new DictionaryFieldMapping<T>(propertyInfo, fieldPath));
+                    else if (propertyInfo.PropertyType.Name.StartsWith("SortedList"))
                         _fields.Add(new DictionaryFieldMapping<T>(propertyInfo, fieldPath));
                     else
                         throw new NotImplementedException("No mapping implemented for type " + propertyInfo.PropertyType.Name);
@@ -122,14 +124,35 @@ namespace Orient.Client.Mapping
                 {
                     _fields.Add(new DateTimeFieldMapping<T>(propertyInfo, fieldPath));
                 }
+                else if (propertyInfo.PropertyType == typeof(TimeSpan))
+                {
+                    _fields.Add(new TimeSpanFieldMapping<T>(propertyInfo, fieldPath));
+                }
+                else if (propertyInfo.PropertyType == typeof(Nullable<TimeSpan>))
+                {
+                    _fields.Add(new NullableTimeSpanFieldMapping<T>(propertyInfo, fieldPath));
+                }
+                else if (propertyInfo.PropertyType == typeof(long))
+                {
+                    _fields.Add(new LongFieldMapping<T>(propertyInfo, fieldPath));
+                }
                 else if (propertyInfo.PropertyType == typeof(Decimal))
                 {
                     _fields.Add(new DecimalFieldMapping<T>(propertyInfo, fieldPath));
+                }
+                else if (propertyInfo.PropertyType == typeof(short))
+                {
+                    _fields.Add(new ShortFieldMapping<T>(propertyInfo, fieldPath));
+                }
+                else if (propertyInfo.PropertyType == typeof(long))
+                {
+                    _fields.Add(new LongFieldMapping<T>(propertyInfo, fieldPath));
                 }
                 else if (propertyInfo.PropertyType.BaseType == typeof(Enum))
                 {
                     _fields.Add(new EnumFieldMapping<T>(propertyInfo, fieldPath));
                 }
+
                 // property is basic type
                 else
                 {
@@ -166,11 +189,14 @@ namespace Orient.Client.Mapping
         {
             ODocument document = new ODocument();
 
-            foreach (var fm in _fields)
-                fm.MapToDocument(genericObject, document);
+            if(genericObject != null)
+            {
+                foreach (var fm in _fields)
+                    fm.MapToDocument(genericObject, document);
 
-            if (string.IsNullOrEmpty(document.OClassName))
-                document.OClassName = genericObject.GetType().Name;
+                if (string.IsNullOrEmpty(document.OClassName))
+                    document.OClassName = genericObject.GetType().Name;
+            }
 
             return document;
 
